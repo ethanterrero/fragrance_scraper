@@ -1,0 +1,110 @@
+import { useState } from "react";
+
+export default function Home() {
+
+  // Holds the text the user types
+  const [query, setQuery] = useState("");
+
+  // Holds search results from the API
+  const [results, setResults] = useState([]);
+
+  // Loading + error states
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  /**
+   * Calls the backend API
+   */
+  async function handleSearch(e) {
+    e.preventDefault();
+
+    // Basic validation
+    if (!query) return;
+
+    setLoading(true);
+    setError(null);
+    setResults([]);
+
+    try {
+      // Call your API route
+      const res = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Something went wrong");
+      }
+
+      // Save results into state
+      setResults(data.results);
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
+      <h1>Cologne Price Finder</h1>
+
+      {/* Search Form */}
+      <form onSubmit={handleSearch} style={{ marginBottom: "1.5rem" }}>
+        <input
+          type="text"
+          placeholder="Search a fragrance..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          style={{
+            padding: "0.5rem",
+            width: "70%",
+            marginRight: "0.5rem"
+          }}
+        />
+
+        <button type="submit">
+          Search
+        </button>
+      </form>
+
+      {/* Loading State */}
+      {loading && <p>Searching for the best prices…</p>}
+
+      {/* Error State */}
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      {/* Results */}
+      {results.length > 0 && (
+        <table width="100%" cellPadding="8" border="1">
+          <thead>
+            <tr>
+              <th>Site</th>
+              <th>Name</th>
+              <th>Price</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((item, index) => (
+              <tr key={index}>
+                <td>{item.site}</td>
+                <td>{item.name}</td>
+                <td>${item.price.toFixed(2)}</td>
+                <td>
+                  <a href={item.link} target="_blank" rel="noopener noreferrer">
+                    View
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {/* Empty State */}
+      {!loading && results.length === 0 && !error && (
+        <p>Search for a fragrance to see prices.</p>
+      )}
+    </main>
+  );
+}

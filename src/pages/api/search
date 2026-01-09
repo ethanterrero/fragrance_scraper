@@ -1,0 +1,36 @@
+import { searchJomashop } from "@/scrapers/jomashop";
+import { searchFragranceNet } from "@/scrapers/fragrancenet";
+import { searchMaxAroma } from "@/scrapers/maxaroma";
+
+export default async function handler(req, res) {
+  const { query } = req.query;
+  if (!query) return res.status(400).json({ error: "Missing query" });
+
+  const results = [];
+
+  try {
+    const [
+      jomashop,
+      fragrancenet,
+      maxaroma
+    ] = await Promise.allSettled([
+      searchJomashop(query),
+      searchFragranceNet(query),
+      searchMaxAroma(query)
+    ]);
+
+    // Only add fulfilled results
+    for (const result of [jomashop, fragrancenet, maxaroma]) {
+      if (result.status === "fulfilled") {
+        results.push(...result.value);
+      }
+    }
+
+    results.sort((a, b) => a.price - b.price);
+
+    res.status(200).json({ query, results });
+
+  } catch {
+    res.status(500).json({ error: "Failed to fetch prices" });
+  }
+}
